@@ -34,7 +34,6 @@ use tower_http::cors::{Any, CorsLayer};
 use tower_http::services::ServeDir;
 
 use anyhow::Context;
-use dotenv::dotenv;
 extern crate redis;
 
 // main.rs
@@ -221,11 +220,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let combined_app1 = app.merge(ws_router);
     let combined_app2 = combined_app1.merge(rover_router);
 
-    println!("Server running on: http://127.0.0.1:8000");
+    println!("Server running on: http://0.0.0.0:8000");
     // Serve the combined application
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:8000")
-        .await
-        .unwrap();
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:8000").await.unwrap();
     axum::serve(listener, combined_app2).await.unwrap();
     Ok(())
 }
