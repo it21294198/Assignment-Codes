@@ -1,0 +1,6 @@
+
+/rust/target
+/rust/.env*
+/rust/Secrets*.toml
+/rust/Host*.toml
+/rust/Local*.toml
