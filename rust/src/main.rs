@@ -21,6 +21,7 @@ use axum_extra::{
 };
 use futures::{sink::SinkExt, stream::StreamExt};
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
+use local_ip_address::local_ip;
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -34,6 +35,8 @@ use tower_http::cors::{Any, CorsLayer};
 use tower_http::services::ServeDir;
 
 use anyhow::Context;
+use qrcode::render::unicode;
+use qrcode::QrCode;
 extern crate redis;
 
 // main.rs
@@ -220,9 +223,36 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let combined_app1 = app.merge(ws_router);
     let combined_app2 = combined_app1.merge(rover_router);
 
-    println!("Server running on: http://0.0.0.0:8000");
+    let environment = secrets.get("ENV");
+
+    let ip_port = if environment
+        .and_then(|s| s.parse::<bool>().ok()) // Parse safely
+        .unwrap_or(false)
+    // Default to false if parsing fails
+    {
+        match local_ip() {
+            Ok(ip) => format!("{}:8000", ip),
+            Err(e) => {
+                eprintln!("Failed to get local IP: {}", e);
+                "127.0.0.1:8000".to_string() // Provide a fallback IP
+            }
+        }
+    } else {
+        "127.0.0.1:8000".to_string()
+    };
+
+    let url = format!("http://{}", ip_port);
+    println!("Server running on: {}", url);
+
+    let code = QrCode::new(url).unwrap();
+    let image = code
+        .render::<unicode::Dense1x2>()
+        .dark_color(unicode::Dense1x2::Light)
+        .light_color(unicode::Dense1x2::Dark)
+        .build();
+    println!("{}", image);
     // Serve the combined application
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:8000").await.unwrap();
+    let listener = tokio::net::TcpListener::bind(ip_port).await.unwrap();
     axum::serve(listener, combined_app2).await.unwrap();
     Ok(())
 }
