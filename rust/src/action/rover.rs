@@ -263,6 +263,11 @@ pub struct OperationState {
     pub six: bool,
     pub time: String,
     pub error: String,
+    pub image: String,
+    pub processed_image: String,
+    pub coordinates: String,
+    pub temp: String,
+    pub humidity: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -491,6 +496,11 @@ pub async fn insert_one_from_rover(
         six: false,
         time: Utc::now().timestamp().to_string(),
         error: "".to_string(),
+        image: "".to_string(),
+        coordinates: "".to_string(),
+        temp: operation.temp.to_string(),
+        humidity: operation.humidity.to_string(),
+        processed_image: "".to_string(),
     };
 
     println!("Operation : 2");
@@ -804,7 +814,13 @@ pub async fn insert_one_from_rover(
     // store from image modal to server on redis
     opt_state.six = true;
     opt_state.time = Utc::now().timestamp().to_string();
-    // opt_state.error = "".to_string();
+    let base64_image_string = image_result_payload.base64_image.to_string();
+    opt_state.processed_image = base64_image_string
+        .strip_prefix("data:image/png;base64,")
+        .unwrap_or("")
+        .to_string();
+    opt_state.coordinates = image_data_json_to_string.clone();
+    opt_state.image = format!("Random Id : {}", &operation.random_id);
     let _ = match state
         .redis
         .set(
