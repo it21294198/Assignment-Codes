@@ -1,3 +1,5 @@
+use std::f64::consts::PI;
+
 use crate::AppState;
 use axum::{
     extract::{Path, State},
@@ -196,7 +198,7 @@ pub struct Operation {
     pub metadata: Value,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ImageCoordinates {
     pub x: f64,
     pub y: f64,
@@ -614,11 +616,11 @@ pub async fn insert_one_from_rover(
     println!("Operation : 8");
     // Convert metadata to a JSON string
     // let url: String = format!("http://127.0.0.1:8080/data");
-    // let url: String = state.url;
-    let url = match state.redis.get("imageserverurl").await {
-        Ok(value) => value,
-        Err(e) => return Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string())),
-    };
+    let url: String = state.url;
+    // let url = match state.redis.get("imageserverurl").await {
+    //     Ok(value) => value,
+    //     Err(e) => return Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string())),
+    // };
 
     // Define the payload
     println!("Operation : 9");
@@ -714,7 +716,10 @@ pub async fn insert_one_from_rover(
     };
 
     println!("Operation : 15");
+
     // Convert image_coordinates to a string
+    image_result_payload.image_result = trim_image_area(&image_result_payload.image_result);
+
     let image_data_json_to_string: String =
         serde_json::to_string(&image_result_payload.image_result).map_err(|e| {
             opt_state.error = e.to_string();
@@ -819,25 +824,71 @@ pub async fn insert_one_from_rover(
     Ok(Json(image_result_payload))
 }
 
+pub fn map_converter(x: f64, in_min: f64, in_max: f64, out_min: f64, out_max: f64) -> f64 {
+    (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min
+}
+
 pub fn handle_image_data(image_result: &Vec<ImageCoordinates>) -> Vec<ImageCoordinates> {
     let mut results = Vec::new();
-    let r = 30.0;
+    let r = 230.0; // Length of the arm
+
     for point in image_result.iter() {
-        // Apply the multipliers as specified
-        let x = point.x * 100.0;
-        let y = point.y * 10.0;
+        // Scale input coordinates
+        let x = 190.0;
+        let y = 230.0;
+        let target_x = (point.x * x).ceil();
+        let target_y = (point.y * y).ceil();
 
-        let val = calculate_inverse_sine(y as f32, r as f32);
-        let result = calculate_result(x as f32, r as f32, val);
+        // Compute the angle correctly
+        let angle = (target_y / r).acos();
 
+        // Compute real_x correctly
+        let real_x = target_x + r * angle.sin();
+        // let reduce_value = 140.0;
+        // let actual_x_value = real_x.abs().ceil() - reduce_value;
+        // let actual_y_value = (angle * 180.0 / PI).ceil();
+        let actual_x_value = real_x.abs().ceil();
+        let actual_y_value = (angle * 180.0 / PI).ceil();
         results.push(ImageCoordinates {
-            x: result as f64,
-            y: (val * r) as f64,
-            confidence: 0.0,
+            x: if actual_x_value < 0.0 {
+                0.0
+            } else {
+                // actual_x_value
+                map_converter(actual_x_value, 90.0, 410.0, 0.0, 30.0)
+                    .abs()
+                    .ceil()
+            },
+            y: if actual_y_value < 0.0 {
+                0.0
+            } else {
+                // actual_y_value
+                map_converter(actual_y_value, 87.0, 20.0, 0.0, 90.0)
+                    .abs()
+                    .ceil()
+            },
+            confidence: point.confidence,
         });
     }
 
-    // Sort results by distance
-    results.sort_by(|a, b| a.x.partial_cmp(&b.y).unwrap_or(std::cmp::Ordering::Equal));
+    // Sort results by x value
+    results.sort_by(|a, b| a.x.partial_cmp(&b.x).unwrap_or(std::cmp::Ordering::Equal));
+    results.truncate(5); // Limit to 5 results
     results
+}
+
+pub fn trim_image_area(image_result: &Vec<ImageCoordinates>) -> Vec<ImageCoordinates> {
+    // Define the min and max values for x and y
+    let min_x = 0.0;
+    let max_x = 1.0;
+    let min_y = 0.0;
+    let max_y = 1.0;
+
+    // Filter out coordinates that are outside the given range
+    image_result
+        .iter()
+        .filter(|coord| {
+            coord.x >= min_x && coord.x <= max_x && coord.y >= min_y && coord.y <= max_y
+        })
+        .cloned() // Clone each element
+        .collect()
 }
