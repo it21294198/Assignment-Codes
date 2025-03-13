@@ -54,9 +54,9 @@ pub async fn get_rover_status_one(
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct Urls {
-    pub image_server_url: String,
+    pub name: String,
+    pub url: String,
 }
 
 pub async fn set_backend_urls(
@@ -69,12 +69,8 @@ pub async fn set_backend_urls(
         status: 0,
     };
 
-    if !urls.image_server_url.is_empty() {
-        match state
-            .redis
-            .set("imageserverurl", &urls.image_server_url)
-            .await
-        {
+    if !urls.url.is_empty() {
+        match state.redis.set(&urls.name, &urls.url).await {
             Ok(_) => {
                 response.status = 1; // Indicate success
                 Ok(Json(response)) // Return the response wrapped in Json
@@ -625,8 +621,8 @@ pub async fn insert_one_from_rover(
 
     println!("Operation : 8");
     // Convert metadata to a JSON string
-    // let url: String = format!("http://127.0.0.1:8080/data");
-    let url: String = state.url;
+    let url: String = format!("http://127.0.0.1:80/find-flower-yolo");
+    // let url: String = state.url;
     // let url = match state.redis.get("imageserverurl").await {
     //     Ok(value) => value,
     //     Err(e) => return Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string())),
