@@ -28,7 +28,8 @@ use serde_json::json;
 use std::fmt::Display;
 use std::sync::Arc;
 use std::time::SystemTime;
-use std::{collections::HashSet, time::Duration};
+// use std::{collections::HashSet, time::Duration};
+use std::collections::HashSet;
 use tokio::sync::Mutex;
 use tokio_postgres::{Client, NoTls};
 use tower_http::cors::{Any, CorsLayer};
@@ -64,30 +65,30 @@ static KEYS: Lazy<Keys> = Lazy::new(|| {
 });
 
 // this function will run POST http://127.0.0.1:8080/rover/trigger/ in every 60 seconds
-async fn perform_cron_task(state: RedisState) {
-    let client = reqwest::Client::new();
+// async fn perform_cron_task(state: RedisState) {
+//     let client = reqwest::Client::new();
 
-    let url = match state.get("triggerserverurl").await {
-        Ok(value) => value,
-        Err(e) => {
-            eprintln!("Error retrieving trigger server URL: {}", e);
-            return;
-        }
-    };
+//     let url = match state.get("triggerserverurl").await {
+//         Ok(value) => value,
+//         Err(e) => {
+//             eprintln!("Error retrieving trigger server URL: {}", e);
+//             return;
+//         }
+//     };
 
-    let response = match client.post(url).send().await {
-        Ok(resp) => resp,
-        Err(err) => {
-            eprintln!("Request error: {}", err);
-            return;
-        }
-    };
+//     let response = match client.post(url).send().await {
+//         Ok(resp) => resp,
+//         Err(err) => {
+//             eprintln!("Request error: {}", err);
+//             return;
+//         }
+//     };
 
-    match response.text().await {
-        Ok(body) => println!("{}", body),
-        Err(err) => eprintln!("Failed to read response body: {}", err),
-    };
-}
+//     match response.text().await {
+//         Ok(body) => println!("{}", body),
+//         Err(err) => eprintln!("Failed to read response body: {}", err),
+//     };
+// }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
