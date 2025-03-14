@@ -198,7 +198,7 @@ pub struct Operation {
 pub struct ImageCoordinates {
     pub x: f64,
     pub y: f64,
-    pub confidence: f64,
+    // pub confidence: f64,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -878,11 +878,12 @@ pub fn handle_image_data(image_result: &Vec<ImageCoordinates>) -> Vec<ImageCoord
                     .abs()
                     .ceil()
             },
-            confidence: point.confidence,
+            // confidence: point.confidence,
         });
     }
 
     // Sort results by x value
+    results.retain(|a| a.x <= 24.0);
     results.sort_by(|a, b| a.x.partial_cmp(&b.x).unwrap_or(std::cmp::Ordering::Equal));
     results.truncate(5); // Limit to 5 results
     results

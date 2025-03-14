@@ -483,28 +483,7 @@ pub async fn test_insert_one_from_rover(
         }
         Some("1") => {
             image_result_payload.rover_state = 1;
-            image_result_payload.image_result = vec![
-                ImageCoordinates {
-                    x: 100.0,
-                    y: 500.0,
-                    confidence: 0.5,
-                },
-                ImageCoordinates {
-                    x: 200.0,
-                    y: 1000.0,
-                    confidence: 0.5,
-                },
-                ImageCoordinates {
-                    x: 300.0,
-                    y: 1500.0,
-                    confidence: 0.5,
-                },
-                ImageCoordinates {
-                    x: 400.0,
-                    y: 2000.0,
-                    confidence: 0.5,
-                },
-            ];
+            image_result_payload.image_result = vec![];
         }
         Some("4") => {
             image_result_payload.rover_state = 4;
