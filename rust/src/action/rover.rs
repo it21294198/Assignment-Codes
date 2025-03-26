@@ -883,7 +883,8 @@ pub fn handle_image_data(image_result: &Vec<ImageCoordinates>) -> Vec<ImageCoord
     }
 
     // Sort results by x value
-    results.retain(|a| a.x <= 24.0);
+    results.retain(|a| a.x <= 20.0);
+
     results.sort_by(|a, b| a.x.partial_cmp(&b.x).unwrap_or(std::cmp::Ordering::Equal));
     results.truncate(5); // Limit to 5 results
     results

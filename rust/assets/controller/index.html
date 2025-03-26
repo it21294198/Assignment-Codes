@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Axum Static File Server on Shuttle</title>
+    <script src="/script.js"></script>
+    <style>
+        .status {
+            background-color: #000000;
+            border: none;
+            color: white;
+            padding: 15px 32px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 12px;
+            box-shadow: 0 9px #999;
+            transition: 0.3s;
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <button class="status" id="btn_status">Loading...</button>
+    </main>
+
+    <script>
+        let roverStatus = 0; // Default state
+
+        window.onload = function() {
+            fetch('/api/user/1', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            })
+            .then(response => response.text()) // Convert response to text
+            .then(status => {
+                const button = document.getElementById('btn_status');
+                roverStatus = status === "1" ? 1 : 0;
+
+                if (roverStatus === 1) {
+                    button.innerHTML = 'On';
+                    button.style.backgroundColor = '#00FF00';
+                } else {
+                    button.innerHTML = 'Off';
+                    button.style.backgroundColor = '#FF0000';
+                }
+            })
+            .catch(error => {
+                document.getElementById('btn_status').innerHTML = 'Error';
+            });
+        };
+
+        document.getElementById('btn_status').onclick = function() {
+            roverStatus = roverStatus === 1 ? 0 : 1; // Toggle status
+
+            fetch('/rover/update', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    "initialId": 12345,
+                    "roverStatus": roverStatus,
+                    "userId": 1
+                }),
+            })
+            .then(() => {
+                const button = document.getElementById('btn_status');
+
+                if (roverStatus === 1) {
+                    button.innerHTML = 'On';
+                    button.style.backgroundColor = '#00FF00';
+                } else {
+                    button.innerHTML = 'Off';
+                    button.style.backgroundColor = '#FF0000';
+                }
+                alert('Status Updated');
+            })
+            .catch(error => {
+                document.getElementById('btn_status').innerHTML = 'Error';
+            });
+        };
+    </script>
+</body>
+</html>
