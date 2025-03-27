@@ -1,6 +1,9 @@
-1. Run to build the server
+1. To Build and Run the server
     ```
-    docker-compose up --build
+    docker build -t rust-axum-app .
+    ```
+    ```
+    docker run -p 8000:8000 --env-file .env -e RUST_BACKTRACE=full rust-axum-app
     ```
 
 2. Run to check status on another terminal

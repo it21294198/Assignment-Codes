@@ -1,18 +1,41 @@
-# filepath: /Users/rusira/Documents/Sliit/4th 2nd sem/CTSE/Assignment Codes/rust/dockerfile
-# Use the official Rust image as the base image
-FROM rust:latest
+# Stage 1: Build the Rust application
+FROM rust:latest AS builder
 
 # Set the working directory inside the container
 WORKDIR /usr/src/app
 
-# Copy the current directory contents into the container at /usr/src/app
+# Copy the Cargo.toml and Cargo.lock files first to leverage Docker's caching
+COPY Cargo.toml Cargo.lock ./
+
+# Create a dummy main.rs to build dependencies (improves caching)
+RUN mkdir src && echo "fn main() {}" > src/main.rs
+
+# Build dependencies only
+RUN cargo build --release && rm -rf src
+
+# Copy the rest of the project files
 COPY . .
 
-# Copy the .env file into the container (optional)
-COPY .env .env
-
-# Build the Rust project
+# Build the actual application
 RUN cargo build --release
 
+# Stage 2: Create a minimal runtime image
+FROM debian:bookworm
+
+# Install necessary runtime dependencies
+RUN apt-get update && apt-get install -y libssl-dev ca-certificates && rm -rf /var/lib/apt/lists/*
+
+# Set the working directory inside the container
+WORKDIR /usr/src/app
+
+# Copy the compiled binary from the builder stage
+COPY --from=builder /usr/src/app/target/release/rust .
+
+# Copy the .env file into the container
+COPY .env .env
+
+# Expose the port your Axum application listens on (e.g., 8000)
+EXPOSE 8000
+
 # Set the command to run the application
-CMD cargo run --release
+CMD ["./rust"]
