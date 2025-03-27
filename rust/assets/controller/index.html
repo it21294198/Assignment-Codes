@@ -6,86 +6,128 @@
     <title>Axum Static File Server on Shuttle</title>
     <script src="/script.js"></script>
     <style>
-        .status {
-            background-color: #000000;
-            border: none;
-            color: white;
-            padding: 15px 32px;
-            text-align: center;
-            text-decoration: none;
-            display: inline-block;
-            font-size: 16px;
-            margin: 4px 2px;
-            cursor: pointer;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        main {
+            background: white;
+            padding: 2rem;
             border-radius: 12px;
-            box-shadow: 0 9px #999;
-            transition: 0.3s;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 700px;
+            text-align: center;
+        }
+
+        h1 {
+            color: #2d3748;
+            font-size: 1.8rem;
+            margin-bottom: 1.5rem;
+        }
+
+        #btn_status {
+            background: #667eea;
+            color: white;
+            padding: 0.75rem 1.2rem;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            width: 100%;
+            max-width: 250px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        #btn_status:hover {
+            background: #764ba2;
+        }
+
+        .status-on {
+            background-color: #00C851 !important;
+        }
+
+        .status-off {
+            background-color: #ff4444 !important;
         }
     </style>
 </head>
 <body>
     <main>
-        <button class="status" id="btn_status">Loading...</button>
+        <h1>Rover Control</h1>
+        <button id="btn_status">Loading...</button>
     </main>
 
     <script>
         let roverStatus = 0; // Default state
 
-        window.onload = function() {
-            fetch('/api/user/1', {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-            })
-            .then(response => response.text()) // Convert response to text
-            .then(status => {
-                const button = document.getElementById('btn_status');
-                roverStatus = status === "1" ? 1 : 0;
+        window.onload = function () {
+            const btn = document.getElementById('btn_status');
+            btn.innerHTML = 'Loading...'; // Set initial loading text
 
-                if (roverStatus === 1) {
-                    button.innerHTML = 'On';
-                    button.style.backgroundColor = '#00FF00';
-                } else {
-                    button.innerHTML = 'Off';
-                    button.style.backgroundColor = '#FF0000';
-                }
-            })
-            .catch(error => {
-                document.getElementById('btn_status').innerHTML = 'Error';
-            });
+            fetch('/api/user/1')
+                .then(response => response.text()) // Read response as text
+                .then(status => {
+                    console.log("Raw status:", status);
+                    
+                    // Ensure status is correctly parsed (handle quoted values)
+                    status = status.replace(/"/g, ''); // Remove quotes if any
+                    roverStatus = parseInt(status.trim(), 10);
+
+                    if (isNaN(roverStatus)) {
+                        btn.innerHTML = 'Error';
+                    } else {
+                        updateButton(btn);
+                    }
+                })
+                .catch(() => {
+                    btn.innerHTML = 'Error';
+                });
         };
 
-        document.getElementById('btn_status').onclick = function() {
-            roverStatus = roverStatus === 1 ? 0 : 1; // Toggle status
+        document.getElementById('btn_status').onclick = function () {
+            roverStatus = roverStatus === 0 ? 1 : 0; // Toggle status
 
             fetch('/rover/update', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    "initialId": 12345,
-                    "roverStatus": roverStatus,
-                    "userId": 1
-                }),
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ "initialId": 1, "roverStatus": roverStatus, "userId": 1 }),
             })
             .then(() => {
                 const button = document.getElementById('btn_status');
-
-                if (roverStatus === 1) {
-                    button.innerHTML = 'On';
-                    button.style.backgroundColor = '#00FF00';
-                } else {
-                    button.innerHTML = 'Off';
-                    button.style.backgroundColor = '#FF0000';
-                }
+                updateButton(button);
                 alert('Status Updated');
             })
-            .catch(error => {
+            .catch(() => {
                 document.getElementById('btn_status').innerHTML = 'Error';
             });
         };
+
+        function updateButton(button) {
+            if (roverStatus === 1) { // 1 means "Off"
+                button.innerHTML = 'Off';
+                button.classList.add('status-off');
+                button.classList.remove('status-on');
+            } else { // 0 means "On"
+                button.innerHTML = 'On';
+                button.classList.add('status-on');
+                button.classList.remove('status-off');
+            }
+        }
     </script>
 </body>
 </html>
