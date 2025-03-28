@@ -242,8 +242,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         "127.0.0.1:8000".to_string()
     };
 
+    let ac_url = format!("http://{}", "192.168.4.1".to_string());
+    println!("Server is running on: {}", ac_url);
+
+    let code = QrCode::new(ac_url).unwrap();
+    let image = code
+        .render::<unicode::Dense1x2>()
+        .dark_color(unicode::Dense1x2::Light)
+        .light_color(unicode::Dense1x2::Dark)
+        .build();
+    println!("{}", image);
+
     let url = format!("http://{}", ip_port);
-    println!("Server running on: {}", url);
+    println!("Server is running on: {}", url);
 
     let code = QrCode::new(url).unwrap();
     let image = code

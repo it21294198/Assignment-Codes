@@ -829,10 +829,11 @@ pub async fn insert_one_from_rover(
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string())),
     };
 
-    println!("Operation : 20");
     // Return the result wrapped in a JSON response
     image_result_payload.base64_image = "".to_string();
     image_result_payload.image_result = handle_image_data(&image_result_payload.image_result);
+    println!("Operation : 20");
+    println!("Image Result : {:?}", image_result_payload);
     Ok(Json(image_result_payload))
 }
 

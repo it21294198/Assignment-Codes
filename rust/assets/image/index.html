@@ -110,34 +110,26 @@
 </head>
 <body>
     <main>
-        <form id="login-form" onsubmit="submitLogin(event)">
-            <button type="submit">Refresh</button>
-        </form>
         <div class="content-container">
             <div id="image-container" class="image-container"></div>
             <div id="data-container" class="data-container"></div>
         </div>
     </main>
-
     <script>
-        function submitLogin(event) {
-            event.preventDefault();
-            
+        function fetchData() {
             fetch('/rover/status/1', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' }
             })
             .then(response => response.json())
             .then(data => {
                 const imageContainer = document.getElementById('image-container');
                 const dataContainer = document.getElementById('data-container');
-
+    
                 // Clear previous content
                 imageContainer.innerHTML = '';
                 dataContainer.innerHTML = '';
-
+    
                 // Display processed image
                 if (data.processed_image) {
                     const img = document.createElement('img');
@@ -145,7 +137,7 @@
                     img.alt = "Processed Image";
                     imageContainer.appendChild(img);
                 }
-
+    
                 // Display all other data except processed_image
                 for (const [key, value] of Object.entries(data)) {
                     if (key !== "processed_image") {
@@ -160,6 +152,8 @@
                 document.getElementById('data-container').innerHTML = 'Error: ' + error.message;
             });
         }
-    </script>
+    
+        setInterval(fetchData, 5000); // Refresh content every 5 seconds
+    </script>    
 </body>
 </html>
