@@ -243,7 +243,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     let ac_url = format!("http://{}", "192.168.4.1".to_string());
-    println!("Server is running on: {}", ac_url);
+    println!("Access Point Server is running on ESP32: {}", ac_url);
 
     let code = QrCode::new(ac_url).unwrap();
     let image = code
