@@ -4,3 +4,5 @@
 /rust/Secrets*.toml
 /rust/Host*.toml
 /rust/Local*.toml
+
+/python/.env*
