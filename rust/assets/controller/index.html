@@ -38,7 +38,7 @@
             margin-bottom: 1.5rem;
         }
 
-        #btn_status {
+        #btn_status, #btn_reset_status {
             background: #667eea;
             color: white;
             padding: 0.75rem 1.2rem;
@@ -51,25 +51,24 @@
             width: 100%;
             max-width: 250px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin: 5px;
         }
 
-        #btn_status:hover {
+        #btn_status:hover, #btn_reset_status:hover {
             background: #764ba2;
         }
 
-        .status-on {
-            background-color: #00C851 !important;
-        }
-
-        .status-off {
-            background-color: #ff4444 !important;
-        }
+        .status-on { background-color: #00C851 !important; }
+        .status-reset { background-color: #3500bc !important; }
+        .status-off { background-color: #ff4444 !important; }
+        .hidden { display: none; }
     </style>
 </head>
 <body>
     <main>
         <h1>Rover Control</h1>
         <button id="btn_status">Loading...</button>
+        <button id="btn_reset_status" class="hidden">Reset</button>
     </main>
 
     <script>
@@ -77,21 +76,20 @@
 
         window.onload = function () {
             const btn = document.getElementById('btn_status');
-            btn.innerHTML = 'Loading...'; // Set initial loading text
+            const btnReset = document.getElementById('btn_reset_status');
 
             fetch('/api/user/1')
-                .then(response => response.text()) // Read response as text
+                .then(response => response.text())
                 .then(status => {
-                    console.log("Raw status:", status);
-                    
-                    // Ensure status is correctly parsed (handle quoted values)
-                    status = status.replace(/"/g, ''); // Remove quotes if any
+                    status = status.replace(/"/g, '');
                     roverStatus = parseInt(status.trim(), 10);
 
                     if (isNaN(roverStatus)) {
                         btn.innerHTML = 'Error';
+                        btnReset.classList.add('hidden');
                     } else {
                         updateButton(btn);
+                        updateResetButton(btnReset);
                     }
                 })
                 .catch(() => {
@@ -108,24 +106,47 @@
                 body: JSON.stringify({ "initialId": 1, "roverStatus": roverStatus, "userId": 1 }),
             })
             .then(() => {
-                const button = document.getElementById('btn_status');
-                updateButton(button);
-                // alert('Status Updated');
+                updateButton(document.getElementById('btn_status'));
+                updateResetButton(document.getElementById('btn_reset_status'));
             })
             .catch(() => {
                 document.getElementById('btn_status').innerHTML = 'Error';
             });
         };
 
+        document.getElementById('btn_reset_status').onclick = function () {
+            roverStatus = 2; // Set to reset state
+
+            fetch('/rover/update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ "initialId": 1, "roverStatus": roverStatus, "userId": 1 }),
+            })
+            .then(() => {
+                updateResetButton(document.getElementById('btn_reset_status'));
+            })
+            .catch(() => {
+                document.getElementById('btn_reset_status').innerHTML = 'Error';
+            });
+        };
+
         function updateButton(button) {
-            if (roverStatus === 1) { // 1 means "Off"
+            if (roverStatus === 1) {
                 button.innerHTML = 'Off';
                 button.classList.add('status-off');
                 button.classList.remove('status-on');
-            } else { // 0 means "On"
+            } else {
                 button.innerHTML = 'On';
                 button.classList.add('status-on');
                 button.classList.remove('status-off');
+            }
+        }
+
+        function updateResetButton(button) {
+            if (roverStatus === 0) {
+                button.classList.remove('hidden');
+            } else {
+                button.classList.add('hidden');
             }
         }
     </script>
