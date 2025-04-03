@@ -115,7 +115,7 @@
         };
 
         document.getElementById('btn_reset_status').onclick = function () {
-            roverStatus = 2; // Set to reset state
+            roverStatus = 3; // Set to reset state
 
             fetch('/rover/update', {
                 method: 'POST',
