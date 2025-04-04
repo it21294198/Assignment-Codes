@@ -607,17 +607,26 @@ pub async fn insert_one_from_rover(
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string())),
     };
 
-    println!("Operation : 7");
+    // println!("Operation : 7");
     // Validate input
-    if operation.image_data.is_null() {
-        opt_state.error = "Image data is null".to_string();
-        return Ok(Json(OperationResult {
-            rover_state: 4,
-            random_id: (&operation.random_id).to_string(),
-            base64_image: "".to_string(),
-            image_result: Vec::new(),
-        }));
-    }
+    // if operation.image_data.is_null() {
+    //     opt_state.error = "Image data is null".to_string();
+    //     return Ok(Json(OperationResult {
+    //         rover_state: 4,
+    //         random_id: (&operation.random_id).to_string(),
+    //         base64_image: "".to_string(),
+    //         image_result: Vec::new(),
+    //     }));
+    // }
+
+    println!("Operation : 7 demonstration");
+    return Ok(Json(OperationResult {
+        rover_state: 1,
+        random_id: (&operation.random_id).to_string(),
+        base64_image: "".to_string(),
+        // image_result: vec![ImageCoordinates { x: 0.0, y: 0.0 }],
+        image_result: vec![ImageCoordinates { x: 10.0, y: 100.0 }],
+    }));
 
     println!("Operation : 8");
     // Convert metadata to a JSON string
