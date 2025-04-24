@@ -1,0 +1,69 @@
+name: Deploy Azure WebApp
+
+on:
+  push:
+    paths:
+      - "webapp1/**"
+    branches:
+      - main
+
+env:
+  AZURE_RESOURCE_GROUP: ${{ secrets.AZURE_RESOURCE_GROUP }}
+  AZURE_APP_NAME: ${{ secrets.AZURE_APP_NAME }}
+  AZURE_PLAN_NAME: ${{ secrets.AZURE_PLAN_NAME }}
+  AZURE_LOCATION: ${{ secrets.AZURE_LOCATION }}
+  DOCKER_IMAGE: ${{ secrets.DOCKER_IMAGE }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        
+      - name: Log in to Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+        
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./webapp1
+          push: true
+          tags: ${{ env.DOCKER_IMAGE }}
+          
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: ${{ env.AZURE_APP_NAME }}
+          images: ${{ env.DOCKER_IMAGE }}
+          
+      - name: Check if app exists and restart or create
+        run: |
+          # Check if the web app exists
+          APP_EXISTS=$(az webapp show --name ${{ env.AZURE_APP_NAME }} --resource-group ${{ env.AZURE_RESOURCE_GROUP }} --query name --output tsv 2>/dev/null || echo "")
+          
+          if [ -n "$APP_EXISTS" ]; then
+            echo "Web app exists, restarting..."
+            az webapp restart --name ${{ env.AZURE_APP_NAME }} --resource-group ${{ env.AZURE_RESOURCE_GROUP }}
+          else
+            echo "Web app does not exist, creating new one..."
+            # Check if app service plan exists, create if not
+            PLAN_EXISTS=$(az appservice plan show --name ${{ env.AZURE_PLAN_NAME }} --resource-group ${{ env.AZURE_RESOURCE_GROUP }} --query name --output tsv 2>/dev/null || echo "")
+            
+            if [ -z "$PLAN_EXISTS" ]; then
+              echo "Creating app service plan..."
+              az appservice plan create --name ${{ env.AZURE_PLAN_NAME }} --resource-group ${{ env.AZURE_RESOURCE_GROUP }} --location ${{ env.AZURE_LOCATION }} --is-linux --sku B1
+            fi
+            
+            # Create web app with Docker container
+            echo "Creating web app with Docker container..."
+            az webapp create --name ${{ env.AZURE_APP_NAME }} --resource-group ${{ env.AZURE_RESOURCE_GROUP }} --plan ${{ env.AZURE_PLAN_NAME }} --deployment-container-image-name ${{ env.DOCKER_IMAGE }}
+            
+            # Configure container settings if needed
+            az webapp config container set --name ${{ env.AZURE_APP_NAME }} --resource-group ${{ env.AZURE_RESOURCE_GROUP }} --docker-custom-image-name ${{ env.DOCKER_IMAGE }}
+          fi
