@@ -1,0 +1,37 @@
+name: Deploy Azure WebApp
+
+on:
+  push:
+    paths:
+      - "webapp1/**"
+    branches:
+      - main
+
+env:
+  AZURE_RESOURCE_GROUP: your-resource-group
+  AZURE_APP_NAME: your-webapp-name
+  AZURE_PLAN_NAME: your-plan-name
+  AZURE_LOCATION: East US
+  DOCKER_IMAGE: your-dockerhub-username/your-image-name:latest
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve
+        env:
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}

@@ -6,3 +6,7 @@
 /rust/Local*.toml
 
 /python/.env*
+
+/terraform_aws/.terraform.*
+/terraform_aws/.terraform
+/terraform_aws/terraform.*
