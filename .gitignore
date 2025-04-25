@@ -14,3 +14,8 @@
 /terraform_aws/.terraform.*
 /terraform_aws/.terraform
 /terraform_aws/terraform.*
+
+/terraform_azure/.terraform.*
+/terraform_azure/.terraform
+/terraform_azure/terraform.*
+

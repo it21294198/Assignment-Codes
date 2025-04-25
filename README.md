@@ -123,3 +123,20 @@ Delete deployment
 az webapp delete --name my-app-name --resource-group myResourceGroup
 ```
 
+## Deploy via terraform and github action
+
+### For terraform run
+
+```
+cd terraform_azure
+terraform init
+terraform plan
+terraform apply
+terraform apply --refresh=true
+```
+
+### Get results
+```
+chmod +x save_terraform_outputs.sh
+./save_terraform_outputs.sh
+```
