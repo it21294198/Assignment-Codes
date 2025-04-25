@@ -1,4 +1,4 @@
-## DevOps
+## DevOps 101
 
 ```mermaid
 stateDiagram
@@ -14,7 +14,22 @@ stateDiagram
 3. Nginx is API Gateway for both apps.
 4. By combining both web APIs on WebApp1 and WebApp2 via Nginx; Nginx exposes them to outside internet through Cloud_Provider.
 
-To run all
+### File structure
+
+```
+project-root/
+├── docker-compose.yml
+├── nginx/
+│   └── default.conf
+├── service1/
+│   ├── Dockerfile
+│   └── (FastAPI code)
+├── service2/
+    ├── Dockerfile
+    └── (Axum code)
+```
+
+### To run all
 
 1. Create WebApp1 docker image
    ```
@@ -53,3 +68,11 @@ To run all
 ✅ http://localhost/service2/ → handled by Axum (service2)
 
 ✅ http://localhost/ → just says “NGINX is up and running!”
+
+### When using Docker Compose:
+
+1. Each service (like service1, service2, nginx) gets its own hostname (same as the service name).
+
+2. They’re on the same internal Docker network.
+
+3. They can call each other using http://<service_name>:<internal_port>.
