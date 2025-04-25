@@ -76,3 +76,50 @@ project-root/
 2. They’re on the same internal Docker network.
 
 3. They can call each other using http://<service_name>:<internal_port>.
+
+### Deploy via Azure Web App for Containers (with Docker Compose)
+
+```
+az login
+```
+
+```
+az acr create --resource-group myResourceGroup --name myContainerRegistry --sku Basic
+```
+```
+az acr login --name myContainerRegistry
+```
+
+Tag Images
+```
+docker tag service1 mycontainerregistry.azurecr.io/service1:latest
+docker tag service2 mycontainerregistry.azurecr.io/service2:latest
+```
+
+Push to remote hub
+```
+docker push mycontainerregistry.azurecr.io/service1:latest
+docker push mycontainerregistry.azurecr.io/service2:latest
+```
+
+Deploy to Azure Web App
+```
+az webapp create \
+  --resource-group myResourceGroup \
+  --plan myAppServicePlan \
+  --name my-app-name \
+  --multicontainer-config-type compose \
+  --multicontainer-config-file docker-compose-prod.yml
+```
+```
+az appservice plan create \
+  --name myAppServicePlan \
+  --resource-group myResourceGroup \
+  --is-linux \
+  --sku B1
+```
+Delete deployment
+```
+az webapp delete --name my-app-name --resource-group myResourceGroup
+```
+
