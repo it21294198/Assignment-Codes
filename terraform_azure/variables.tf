@@ -1,26 +1,25 @@
 # variables.tf
+
 variable "resource_group_name" {
-  description = "Name of the Azure Resource Group"
+  description = "Name of the resource group"
   type        = string
+  default     = "webapp-rg"
 }
 
 variable "location" {
-  description = "Azure Region"
+  description = "Azure region for resources"
   type        = string
-  default     = "East US"
-}
-
-variable "app_service_plan_name" {
-  description = "Name of the App Service Plan"
-  type        = string
+  default     = "westus" # Changed from eastus to try a different region
 }
 
 variable "webapp_name" {
-  description = "Name of the Azure Web App"
+  description = "Name of the Web App (will be appended with random string)"
   type        = string
+  default     = "mywebapp"
 }
 
-variable "docker_image" {
-  description = "Docker image name (e.g., username/image:tag)"
+variable "acr_name" {
+  description = "Name of the Azure Container Registry (will be appended with random string)"
   type        = string
+  default     = "acr"
 }

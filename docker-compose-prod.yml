@@ -1,0 +1,24 @@
+services:
+  nginx:
+    build:
+      context: ./nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - service1
+      - service2
+
+  service1:
+    image: mycontainerregistry.azurecr.io/service1:latest
+    ports:
+      - "8080:8080"
+    expose:
+      - "8080"
+
+  service2:
+    image: mycontainerregistry.azurecr.io/service2:latest
+    ports:
+      - "8000:8000"
+    expose:
+      - "8000"

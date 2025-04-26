@@ -1,38 +1,103 @@
 # main.tf
+
+terraform {
+  required_providers {
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = "~> 3.0"
+    }
+  }
+}
+
 provider "azurerm" {
   features {}
 }
 
-resource "azurerm_resource_group" "webapp_rg" {
+# Create a random string to ensure uniqueness for ACR name
+resource "random_string" "unique" {
+  length  = 8
+  special = false
+  upper   = false
+}
+
+# Resource Group
+resource "azurerm_resource_group" "rg" {
   name     = var.resource_group_name
   location = var.location
 }
 
-resource "azurerm_app_service_plan" "webapp_plan" {
-  name                = var.app_service_plan_name
-  location            = azurerm_resource_group.webapp_rg.location
-  resource_group_name = azurerm_resource_group.webapp_rg.name
-  kind                = "Linux"
-  reserved            = true
-
-  sku {
-    tier = "Basic"
-    size = "B1"
-  }
+# Azure Container Registry with unique name
+resource "azurerm_container_registry" "acr" {
+  name                = "${var.acr_name}${random_string.unique.result}"
+  resource_group_name = azurerm_resource_group.rg.name
+  location            = azurerm_resource_group.rg.location
+  sku                 = "Basic"
+  admin_enabled       = true
 }
 
-resource "azurerm_app_service" "webapp" {
-  name                = var.webapp_name
-  location            = azurerm_resource_group.webapp_rg.location
-  resource_group_name = azurerm_resource_group.webapp_rg.name
-  app_service_plan_id = azurerm_app_service_plan.webapp_plan.id
+# App Service Plan with Standard tier (instead of Premium)
+resource "azurerm_service_plan" "app_plan" {
+  name                = "${var.webapp_name}-plan"
+  resource_group_name = azurerm_resource_group.rg.name
+  location            = azurerm_resource_group.rg.location
+  os_type             = "Linux"
+  sku_name            = "S1" # Using Standard tier instead of Premium
+}
+
+# Web App for Containers
+resource "azurerm_linux_web_app" "webapp" {
+  name                = "${var.webapp_name}${random_string.unique.result}"
+  resource_group_name = azurerm_resource_group.rg.name
+  location            = azurerm_resource_group.rg.location
+  service_plan_id     = azurerm_service_plan.app_plan.id
 
   site_config {
-    linux_fx_version = "DOCKER|${var.docker_image}"
+    always_on = true
+    application_stack {
+      docker_image     = "nginx"
+      docker_image_tag = "latest"
+    }
+    container_registry_use_managed_identity = false
   }
 
   app_settings = {
-    WEBSITES_ENABLE_APP_SERVICE_STORAGE = "false"
-    DOCKER_REGISTRY_SERVER_URL          = "https://index.docker.io"
+    "DOCKER_REGISTRY_SERVER_URL"          = "https://${azurerm_container_registry.acr.login_server}"
+    "DOCKER_REGISTRY_SERVER_USERNAME"     = azurerm_container_registry.acr.admin_username
+    "DOCKER_REGISTRY_SERVER_PASSWORD"     = azurerm_container_registry.acr.admin_password
+    "WEBSITES_ENABLE_APP_SERVICE_STORAGE" = "false"
+    "DOCKER_ENABLE_CI"                    = "true"
   }
+
+  depends_on = [azurerm_container_registry.acr]
+}
+
+# Outputs to be used in GitHub Actions
+output "resource_group_name" {
+  value     = azurerm_resource_group.rg.name
+  sensitive = false
+}
+
+output "webapp_name" {
+  value     = azurerm_linux_web_app.webapp.name
+  sensitive = false
+}
+
+output "acr_name" {
+  value     = azurerm_container_registry.acr.name
+  sensitive = false
+}
+
+output "acr_login_server" {
+  value     = azurerm_container_registry.acr.login_server
+  sensitive = false
+}
+
+output "acr_username" {
+  value     = azurerm_container_registry.acr.admin_username
+  sensitive = true
+}
+
+output "acr_password" {
+  value     = azurerm_container_registry.acr.admin_password
+  sensitive = true
 }

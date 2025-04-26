@@ -9,6 +9,13 @@
 
 /webapp1/project_env
 
+/webapp2/target
+
 /terraform_aws/.terraform.*
 /terraform_aws/.terraform
 /terraform_aws/terraform.*
+
+/terraform_azure/.terraform.*
+/terraform_azure/.terraform
+/terraform_azure/terraform.*
+
