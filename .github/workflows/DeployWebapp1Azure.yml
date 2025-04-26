@@ -1,69 +1,89 @@
-name: Deploy Azure WebApp
-
+name: Deploy Docker Compose to Azure WebApp
 on:
   push:
     paths:
+      - "nginx/**"
       - "webapp1/**"
+      - "webapp2/**"
+      - "docker-compose-prod.yml"
+      - ".github/workflows/DeployWebapp1Azure.yml"
     branches:
       - main
-
-env:
-  AZURE_RESOURCE_GROUP: ${{ secrets.AZURE_RESOURCE_GROUP }}
-  AZURE_APP_NAME: ${{ secrets.AZURE_APP_NAME }}
-  AZURE_PLAN_NAME: ${{ secrets.AZURE_PLAN_NAME }}
-  AZURE_LOCATION: ${{ secrets.AZURE_LOCATION }}
-  DOCKER_IMAGE: ${{ secrets.DOCKER_IMAGE }}
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v3
-        
-      - name: Log in to Azure
-        uses: azure/login@v1
+
+      # Using Azure webapp publish profile for authentication
+      - name: Download Web App publish profile
+        id: publishprofile
+        uses: azure/action-download-publish-profile@v1
         with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-          
+          resourceGroupName: ${{ secrets.AZURE_RESOURCE_GROUP }}
+          name: ${{ secrets.AZURE_WEBAPP_NAME }}
+          slot-name: "production"
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
-        
-      - name: Build and push Docker image
+
+      - name: Log in to Azure Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ secrets.ACR_LOGIN_SERVER }}
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
+
+      - name: Build and push NGINX image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./nginx
+          push: true
+          tags: ${{ secrets.ACR_LOGIN_SERVER }}/nginx:latest
+
+      - name: Build and push Service1 image
         uses: docker/build-push-action@v4
         with:
           context: ./webapp1
           push: true
-          tags: ${{ env.DOCKER_IMAGE }}
-          
+          tags: ${{ secrets.ACR_LOGIN_SERVER }}/service1:latest
+
+      - name: Build and push Service2 image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./webapp2
+          push: true
+          tags: ${{ secrets.ACR_LOGIN_SERVER }}/service2:latest
+
+      - name: Generate production docker-compose file
+        run: |
+          cat > docker-compose-prod.yml << EOF
+          version: '3'
+          services:
+            nginx:
+              image: ${{ secrets.ACR_LOGIN_SERVER }}/nginx:latest
+              ports:
+                - "80:80"
+                - "443:443"
+              depends_on:
+                - service1
+                - service2
+            service1:
+              image: ${{ secrets.ACR_LOGIN_SERVER }}/service1:latest
+              expose:
+                - "8080"
+            service2:
+              image: ${{ secrets.ACR_LOGIN_SERVER }}/service2:latest
+              expose:
+                - "8000"
+          EOF
+
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v2
         with:
-          app-name: ${{ env.AZURE_APP_NAME }}
-          images: ${{ env.DOCKER_IMAGE }}
-          
-      - name: Check if app exists and restart or create
-        run: |
-          # Check if the web app exists
-          APP_EXISTS=$(az webapp show --name ${{ env.AZURE_APP_NAME }} --resource-group ${{ env.AZURE_RESOURCE_GROUP }} --query name --output tsv 2>/dev/null || echo "")
-          
-          if [ -n "$APP_EXISTS" ]; then
-            echo "Web app exists, restarting..."
-            az webapp restart --name ${{ env.AZURE_APP_NAME }} --resource-group ${{ env.AZURE_RESOURCE_GROUP }}
-          else
-            echo "Web app does not exist, creating new one..."
-            # Check if app service plan exists, create if not
-            PLAN_EXISTS=$(az appservice plan show --name ${{ env.AZURE_PLAN_NAME }} --resource-group ${{ env.AZURE_RESOURCE_GROUP }} --query name --output tsv 2>/dev/null || echo "")
-            
-            if [ -z "$PLAN_EXISTS" ]; then
-              echo "Creating app service plan..."
-              az appservice plan create --name ${{ env.AZURE_PLAN_NAME }} --resource-group ${{ env.AZURE_RESOURCE_GROUP }} --location ${{ env.AZURE_LOCATION }} --is-linux --sku B1
-            fi
-            
-            # Create web app with Docker container
-            echo "Creating web app with Docker container..."
-            az webapp create --name ${{ env.AZURE_APP_NAME }} --resource-group ${{ env.AZURE_RESOURCE_GROUP }} --plan ${{ env.AZURE_PLAN_NAME }} --deployment-container-image-name ${{ env.DOCKER_IMAGE }}
-            
-            # Configure container settings if needed
-            az webapp config container set --name ${{ env.AZURE_APP_NAME }} --resource-group ${{ env.AZURE_RESOURCE_GROUP }} --docker-custom-image-name ${{ env.DOCKER_IMAGE }}
-          fi
+          app-name: ${{ secrets.AZURE_WEBAPP_NAME }}
+          publish-profile: ${{ steps.publishprofile.outputs.publishProfileContent }}
+          configuration-file: docker-compose-prod.yml
+          type: compose
